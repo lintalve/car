@@ -251,7 +251,7 @@ int main(int argc, const char* argv[]) {
      ##############################
     */
     //Car car1;
-    //Car car2 = modifyCar(car1, "UA24564");
+    Car car2 = modifyCar(car1, "UA24564");
     
     
     return 0;
