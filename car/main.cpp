@@ -11,15 +11,9 @@
 #include <ctime>
 #include "Person.hpp"
 #include "Body.hpp"
+#include "Engine.hpp"
 
-class myException : public std::exception {
-    std::string message;
-public:
-    myException(const std::string& mes) : message(mes) {}
-    const char* what() const noexcept override {
-        return message.c_str();
-    }
-};
+
 
 class Object {
     int someInt{};
@@ -54,10 +48,10 @@ protected:
     class LicPlate {
         // !!! Derived classes can then inherit the state without needing to redefine it !!!
         
-        //let it be public here and private further
-        //so these (const char* string literals) are
-        //stored in read-only area of the memory
-        //deleting them is undefined behaviour
+        //lass es hier privat sein und publik weiter
+        //So diese (const char* string literals) sind
+        // in read-only area of the memory gespeichert
+        //loschen sie ist 'undefined behaviour'
     public:
         Color color {};
         const char* number {nullptr};
@@ -102,15 +96,14 @@ protected:
         virtual const char* get_number() const { return number; }
         virtual Color getColor() const { return color; }
     }lp;
-    //If MyClass does not have a default constructor, and the braces are empty (i.e., {}),
-    //value-initialization occurs, which means that obj is initialized to its default value
-    //(for example, zero for primitive types or calling the default constructor for class members).
-    //LicPlate lp {};  //CALLS the defaault constructor right there!!
-    float top_speed {};
+    Person driver;
+    float average_speed {};
+    float run;
     std::string maker {"Mercedes"};
     std::string place_of_origing {"Germany"};
 public:
-    Vehicle() : lp("DE93745"), top_speed(230.5f) {
+    //Default consrtuctor
+    Vehicle() : lp("DE93745"), average_speed(230.5f) {
         std::cout << "Vehicle Default constructor" << std::endl;
     }
     //Copy-constructor
@@ -118,88 +111,94 @@ public:
         std::cout << "Vehicle Copy-constructor" << std::endl;
         if(&vh == this) throw myException("self assignment");
         lp = vh.lp;
-        top_speed = vh.top_speed;
+        average_speed = vh.average_speed;
     }
     //Copy-operator=
     Vehicle& operator=(const Vehicle& vh) {
         std::cout << "Vehicle Copy-operator=" << std::endl;
         if(&vh == this) return *this;
         lp = vh.lp;
-        top_speed = vh.top_speed;
+        average_speed = vh.average_speed;
         return *this;
     }
     //Move-constructor
-    Vehicle(Vehicle&& vh) : lp(vh.lp), top_speed(vh.top_speed) {
+    Vehicle(Vehicle&& vh) : lp(vh.lp), average_speed(vh.average_speed) {
         std::cout << "Vehicle Move-constructor" << std::endl;
         //leave the moved from...
         //with an initeresting syntax
         vh.lp = {};
-        vh.top_speed = {};
+        vh.average_speed = {};
     }
     //Move-operator=
-    Vehicle& operator=(Vehicle&& vh) {
+    Vehicle& operator=(Vehicle&& vh) noexcept {
         std::cout << "Vehicle Move-operator=" << std::endl;
         lp = vh.lp;  //Calls lps Move constructor due to its && nature
-        top_speed = vh.top_speed;
+        average_speed = vh.average_speed;
         //leave the moved from...
-        //with an initeresting syntax
+        //mit ein interestes syntax
         vh.lp = {};  //creates a temporary default-initialized object (1 constructor call)
                      //and than move or copy that temp obj to vh.lp or copy eliscit since c++17
-        vh.top_speed = {};
+        vh.average_speed = {};
         return *this;
     }
-    virtual void set_lp_number(const char* num) = 0;
-    virtual std::string getPaint() const = 0;
-    const char* get_lp() const { return lp.number; }
-    
+    //das Interface
+    virtual void set_lp_number(const char* num) {}
+    virtual const char* get_lp_number() const { return lp.number; }
+    virtual void repaint() = 0;
+    virtual void drive() = 0;
+    virtual void inflateTires() = 0;
+    virtual void recharge() = 0;
+    virtual void stop() = 0;
+    virtual void breakSelf() = 0;
+    virtual void repair() = 0;
 };
 
-//########################################//
+class SUV : public Vehicle {};
+
+class Truck : public Vehicle {};
+
+class Crossover : public Vehicle {};
 
 class Car : public Vehicle {
-    //COMPOSITION
-    Body body;
-    Person driver;
-    
+    static std::string mainActivity;
 public:
-    //Car calls member object body constructor in its init-list
-    Car() : Vehicle(), body(), driver() { std::cout << "Car Default constructor" << std::endl; }
-    void setNumber(const char* number) {
-        set_lp(number);
+    //Car ruft default Vehicle constructor in its init-list
+    Car() : Vehicle() { std::cout << "Car Default constructor" << std::endl; }
+    void set_lp_number(const char* num) override {
+        lp.number = "number";
     }
     Car(const Car& c) {  //remember self copy
         if(this == &c) throw myException("Self Copy contruction attempt");
     }
-    void set_lp_number(const char* num) override {
-        number = "DE0987";
-    }
-    std::string getPaint() const override {
-        return "Car statin dark grey film";
-    }
-                        
+
 };
 
 class Mercedes_C : public Car {
-    //Nothing to extend car wiwth so far
-    //Polymorpysm, functions overriding
-    Mercedes_C() : Car() {
+    //COMPOSITION
+    Body body;
+    Engine engine;
+public:
+    Mercedes_C() : Car(), body(), engine() {
         std::cout << "Mercedes_C Default constructor" << std::endl;
     }
-    std::string getPaint() const override {
-        return "fine quality Mecedes dark grey satin film";
-    }
+    //Copy constructor            //here we call explicitly the COpy-constrructors of above Classes
+    Mercedes_C(const Mercedes_C& m) : Car(m) {}
+    void repaint() override {}
+    void drive() override {}
+    void inflateTires() override {}
+    void recharge() override {}
+    void stop() override {}
+    void breakSelf() override {}
+    void repair() override {}
 };
 
-//Global functions:
-Car modifyCar(Car c, const char* number) {
-    c.setNumber(number);
-    return c;
-}
+//############Global TEST functions####################//
+/*
 Car getCar(const char* number) {
     Car c;
     return c;
 }
-/*
+
 Car&& returnCar(const char* number = "UA23745") {
     
     //return Car();  //WARNING:: returns rvalue but not a reference to it
@@ -219,7 +218,7 @@ int main(int argc, const char* argv[]) {
     
     //Body bd(rFd, lFd, rRd, lRd, Door());
     
-    Car car1;
+    Mercedes_C merc1;
     //Body bd1;
     
     
@@ -227,10 +226,12 @@ int main(int argc, const char* argv[]) {
     // !!!VERY IMPORTANT !!! - next lines are very important
     std::cout << "##############################" << std::endl;
     Door myDoor;
+    Door myDoor1 {};
     myDoor = Door(); //Move operator= on Door
     std::cout << "===========Door dr1; dr1 = myDoor;=================" << std::endl;
     Door dr1;     //default constructor
     dr1 = myDoor; // copy operator=
+    std::cout << "===========dr1 = std::move(myDoor);=================" << std::endl;
     dr1 = std::move(myDoor);
     std::cout << "==============Door dr2 = Door();===============" << std::endl;
                 //should've been moving but:
@@ -251,7 +252,7 @@ int main(int argc, const char* argv[]) {
      ##############################
     */
     //Car car1;
-    Car car2 = modifyCar(car1, "UA24564");
+    //Car car2 = modifyCar(car1, "UA24564");
     
     
     return 0;

@@ -1,6 +1,8 @@
 #ifndef BODY_HPP
 #define BODY_HPP
 
+#include "myException.hpp"
+
 class Wheel {
     double radius {11 * 2.54};
     double distance {};
@@ -23,21 +25,26 @@ public:
     //no need for custom copy constructor, bitwise copying is fine
     //no need for custom copy assignment operator, bitwise copying is fine
     //no need move?? pedantic approach says yes
-    //need Copy constructor
+    //Copy-constructor
     Window(const Window& w) {
+        if(this == &w) throw myException("self assignment");
+        closed = w.closed;
         std::cout << "Window Copy-constructor" << std::endl;
     }
+    //Copy-operator=
     Window& operator=(const Window& w) {
         std::cout << "Window Copy-assignment operator" << std::endl;
-        if(&w == this) return *this;
+        if(this == &w) throw myException("self assignment");
         closed = w.closed;
         return *this;
     }
+    //Move-constructor
     Window(Window&& w) noexcept {
         std::cout << "Window Move-constructor" << std::endl;
         closed = w.closed;
         w.closed = true; //zum beischpiel
     }
+    //Move-operator=
     Window& operator=(Window&& w) noexcept {
         std::cout << "Window Move-assignment operator" << std::endl;
         closed = w.closed;
@@ -76,9 +83,9 @@ public:
     }
     //Copy assignment operator
     Door& operator=(const Door& d) {
-        std::cout << "Door Copy-assignment operator" << std::endl;
-        win = new Window(*d.win); //relies on Window copy constructor
-        closed = d.closed;
+        std::cout << "Door Copy-operator=" << std::endl;
+        win = new Window(*d.win); //Good for Copy-operator= but not for Move
+        closed = d.closed;        //move reaps live resources, copy constructs a copy
         return *this;
     }
     //Move constructor
@@ -93,8 +100,8 @@ public:
     }
     //Move assignment operator
     Door& operator=(Door&& d) noexcept {
-        std::cout << "Door Move-assignment operator" << std::endl;
-        win = new Window(std::move(*d.win));  //Move-constructor on Window
+        std::cout << "Door Move-operator=" << std::endl;
+        win = d.win;
         closed = d.closed;
         //leave...
         d.win = nullptr;
